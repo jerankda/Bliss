@@ -29,7 +29,7 @@ ipcMain.handle('createNewProject', async () => {
     return null;
   }
 
-  // Create the directory
+  // Create the directory if it doesn't exist
   if (!fs.existsSync(filePath)) {
     fs.mkdirSync(filePath, { recursive: true });
   }
@@ -72,6 +72,37 @@ ipcMain.handle('openFileFromProject', async (event, projectPath, fileName) => {
     console.error('Error opening file:', error);
     return null;
   }
+});
+
+// Handle creating a new file in the project directory
+ipcMain.handle('createNewFile', async (event, projectPath, fileName) => {
+  try {
+    const filePath = path.join(projectPath, fileName);
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, '');  // Create an empty file
+    }
+
+    // Return updated list of files in the project directory
+    const files = fs.readdirSync(projectPath);
+    return { files };
+  } catch (error) {
+    console.error('Error creating new file:', error);
+    return null;
+  }
+});
+
+// Show input dialog for new file name
+ipcMain.handle('showInputDialog', async (event, message) => {
+  const { canceled, response } = await dialog.showMessageBox({
+    message: message,
+    buttons: ['OK'],
+    inputFields: {
+      type: 'text',
+      placeholder: 'Enter file name'
+    }
+  });
+
+  return canceled ? null : response;
 });
 
 // Handle saving a file

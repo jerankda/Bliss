@@ -28,6 +28,7 @@
         overflow: hidden;
       }
 
+      /* Menu Bar */
       #menu-bar {
         width: 200px;
         background-color: #252526;
@@ -35,11 +36,15 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        position: fixed; /* Fix the menu bar in place */
+        top: 0;
+        bottom: 0;
+        left: 0;
       }
 
       /* Bliss Title */
       #menu-bar h1 {
-        font-size: 1.2rem; /* Reduce the font size */
+        font-size: 1.2rem;
         color: #61dafb;
         margin-bottom: 20px;
         text-align: center;
@@ -50,7 +55,7 @@
         margin-bottom: 10px;
         padding: 10px 20px;
         text-decoration: none;
-        font-size: 1rem; /* Reduce the font size */
+        font-size: 1rem;
         background-color: #333;
         border-radius: 5px;
         transition: background-color 0.2s;
@@ -62,24 +67,32 @@
         background-color: #61dafb;
       }
 
+      /* Editor Container */
       #editor-container {
         flex-grow: 1;
         padding: 20px;
-        width: 100%;
+        width: calc(100% - 200px); /* Subtract the menu width */
+        margin-left: 200px; /* Align editor next to fixed menu bar */
+        height: 100vh;
+        overflow: auto; /* Enable scrolling */
       }
 
+      /* Code Editor */
       #editor {
         width: 100%;
         height: 100%;
-        background-color: #1e1e1e;
+        background-color: #262626; /* Slightly different background color */
         color: white;
-        border: none;
+        border: 2px solid #555; /* Add a subtle border */
+        border-radius: 5px;
         padding: 10px;
         font-family: 'Cascadia Code', monospace;
         font-size: 14px;
         resize: none;
         outline: none;
-        border-radius: 5px;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Optional: shadow for clarity */
       }
     </style>
   </head>
@@ -96,18 +109,23 @@
     </div>
 
     <script>
-      const urlParams = new URLSearchParams(window.location.search);
       const editor = document.getElementById('editor');
       let currentFilePath = null;
 
-      if (urlParams.has('new') && urlParams.get('new') === 'true') {
-        // New File
-        editor.value = '';
-      } else if (urlParams.has('file') && urlParams.has('content')) {
-        // Opened File
-        currentFilePath = decodeURIComponent(urlParams.get('file'));
-        editor.value = decodeURIComponent(urlParams.get('content'));
-      }
+      // New File
+      document.getElementById('new-file').addEventListener('click', () => {
+        editor.value = '';  // Clear the editor content
+        currentFilePath = null;  // Reset the file path
+      });
+
+      // Open File
+      document.getElementById('open-file').addEventListener('click', async () => {
+        const result = await window.electronAPI.openFile();
+        if (result) {
+          editor.value = result.content;
+          currentFilePath = result.filePath;
+        }
+      });
 
       // Save File
       document.getElementById('save-file').addEventListener('click', async () => {
@@ -115,21 +133,6 @@
         const result = await window.electronAPI.saveFile(currentFilePath, content);
         if (result) {
           currentFilePath = result;  // Update file path after saving
-        }
-      });
-
-      // New File in editor
-      document.getElementById('new-file').addEventListener('click', () => {
-        editor.value = '';
-        currentFilePath = null;
-      });
-
-      // Open File in editor
-      document.getElementById('open-file').addEventListener('click', async () => {
-        const result = await window.electronAPI.openFile();
-        if (result) {
-          editor.value = result.content;
-          currentFilePath = result.filePath;
         }
       });
     </script>

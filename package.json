@@ -1,0 +1,16 @@
+{
+  "name": "bliss",
+  "version": "1.0.0",
+  "main": "main.js",
+  "dependencies": {
+    "electron": "^32.0.2",
+    "monaco-editor": "^0.51.0"
+  },
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

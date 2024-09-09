@@ -42,7 +42,6 @@
         left: 0;
       }
 
-      /* Bliss Title */
       #sidebar h1 {
         font-size: 1.2rem;
         color: #61dafb;
@@ -50,21 +49,21 @@
         text-align: center;
       }
 
-      #sidebar a {
+      #sidebar button {
         color: #d4d4d4;
         margin-bottom: 10px;
         padding: 10px 20px;
-        text-decoration: none;
         font-size: 1rem;
         background-color: #333;
         border-radius: 5px;
+        border: none;
         transition: background-color 0.2s;
         width: 100%;
         text-align: center;
         cursor: pointer;
       }
 
-      #sidebar a:hover {
+      #sidebar button:hover {
         background-color: #61dafb;
       }
 
@@ -102,7 +101,7 @@
       /* Code Editor */
       #editor {
         width: 100%;
-        height: 100%;
+        height: calc(100% - 40px); /* Adjust height to leave space for file indicator */
         background-color: #1e1e1e;
         color: white;
         border: none;
@@ -114,15 +113,27 @@
         white-space: pre-wrap;
         overflow-wrap: break-word;
       }
+
+      /* Current File Indicator */
+      #current-file {
+        background-color: #252526;
+        color: #61dafb;
+        padding: 10px;
+        font-size: 14px;
+        text-align: left;
+        border-bottom: 1px solid #333;
+        height: 40px;
+        display: flex;
+        align-items: center;
+      }
     </style>
   </head>
   <body>
     <!-- Sidebar for Files/Project -->
     <div id="sidebar">
       <h1>Bliss</h1>
-      <a id="new-project">New Project</a>
-      <a id="open-project">Open Project</a>
-      <a id="save-file">Save File</a>
+      <button id="new-file">New File</button>
+      <button id="save-file" style="display: none;">Save File</button>
 
       <!-- List of files in the project -->
       <ul id="file-list" class="file-list"></ul>
@@ -130,87 +141,80 @@
 
     <!-- Code Editor Container -->
     <div id="editor-container">
-      <textarea id="editor"></textarea>
+      <!-- Current File Indicator -->
+      <div id="current-file">No file opened</div>
+      <textarea id="editor" disabled></textarea>
     </div>
 
     <script>
       const editor = document.getElementById('editor');
       const fileList = document.getElementById('file-list');
+      const newFileButton = document.getElementById('new-file');
+      const saveFileButton = document.getElementById('save-file');
+      const currentFileIndicator = document.getElementById('current-file');
+
       let currentFilePath = null;
       let currentProjectPath = null;
 
-      // Extract query parameters (projectPath, file, etc.)
+      // Extract project path from query params
       const urlParams = new URLSearchParams(window.location.search);
-      currentProjectPath = urlParams.get('projectPath');  // Check if it's a new project
-      const isNewFile = urlParams.get('new'); // Check if it's a new file
+      currentProjectPath = urlParams.get('projectPath');  // Get project path from URL
 
-      // If a new project is loaded, initialize the project directory in the sidebar
       if (currentProjectPath) {
-        initializeNewProject();
+        initializeProject();
+        newFileButton.style.display = 'block';  // Show New File button once project is loaded
       }
 
-      // If a new file is being created, initialize the editor for a new file
-      if (isNewFile) {
-        initializeNewFile();
-      }
-
-      // Initialize a new project by showing the empty sidebar
-      async function initializeNewProject() {
-        fileList.innerHTML = '<li><em>Empty Project</em></li>';  // Indicate it's a new project
-      }
-
-      // Initialize a new file in the editor
-      function initializeNewFile() {
-        editor.value = '';  // Clear the editor for a new file
-        currentFilePath = null;  // Reset the file path
-        editor.focus();  // Focus the editor
-      }
-
-      // New Project: Create a new project folder when clicked
-      document.getElementById('new-project').addEventListener('click', async () => {
-        const result = await window.electronAPI.createNewProject();
-        if (result) {
-          currentProjectPath = result.projectPath; // Store the new project path
-          initializeNewProject(); // Re-initialize the editor with the new project
+      // Initialize project and load files
+      async function initializeProject() {
+        const result = await window.electronAPI.loadProjectFiles(currentProjectPath);
+        if (result && result.files) {
+          loadFiles(result.files);  // Display files in the sidebar
         }
-      });
+      }
 
-      // Open Project (Select Directory)
-      document.getElementById('open-project').addEventListener('click', async () => {
-        const result = await window.electronAPI.openDirectory();
-        if (result) {
-          currentProjectPath = result.projectPath;  // Store the project path
-          loadProjectFiles(result.files);  // Display the files in the sidebar
-        }
-      });
-
-      // Load Files into Sidebar
-      function loadProjectFiles(files) {
-        fileList.innerHTML = ''; // Clear current list
+      // Load files into the sidebar
+      function loadFiles(files) {
+        fileList.innerHTML = '';
         files.forEach(file => {
           const li = document.createElement('li');
           li.textContent = file;
-          li.addEventListener('click', () => openFileInEditor(file)); // Add click event to load file
+          li.addEventListener('click', () => openFileInEditor(file));
           fileList.appendChild(li);
         });
       }
 
-      // Open File from Sidebar and Load into Editor
+      // Button: Create New File
+      newFileButton.addEventListener('click', async () => {
+        const fileName = prompt("Enter file name (with extension):");
+        if (fileName) {
+          const result = await window.electronAPI.createNewFile(currentProjectPath, fileName);
+          if (result) {
+            loadFiles(result.files);  // Reload files in the sidebar
+            openFileInEditor(fileName);  // Open the newly created file in the editor
+          }
+        }
+      });
+
+      // Open a file and load its contents into the editor
       async function openFileInEditor(file) {
         const result = await window.electronAPI.openFileFromProject(currentProjectPath, file);
         if (result) {
           editor.value = result.content;
+          editor.disabled = false;
           currentFilePath = result.filePath;
-          editor.focus(); // Ensure the cursor remains active in the editor
+          currentFileIndicator.textContent = file;
+          saveFileButton.style.display = 'block';
         }
       }
 
-      // Save File
-      document.getElementById('save-file').addEventListener('click', async () => {
+      // Button: Save File
+      saveFileButton.addEventListener('click', async () => {
+        if (!currentFilePath) return;
         const content = editor.value;
         const result = await window.electronAPI.saveFile(currentFilePath, content);
         if (result) {
-          currentFilePath = result;  // Update file path after saving
+          console.log('File saved successfully');
         }
       });
     </script>

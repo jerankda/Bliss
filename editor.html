@@ -28,29 +28,29 @@
         overflow: hidden;
       }
 
-      /* Menu Bar */
-      #menu-bar {
-        width: 200px;
+      /* Sidebar for Files/Projects */
+      #sidebar {
+        width: 250px;
         background-color: #252526;
         padding: 20px;
+        overflow-y: auto;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        position: fixed; /* Fix the menu bar in place */
+        position: fixed;
         top: 0;
         bottom: 0;
         left: 0;
       }
 
       /* Bliss Title */
-      #menu-bar h1 {
+      #sidebar h1 {
         font-size: 1.2rem;
         color: #61dafb;
         margin-bottom: 20px;
         text-align: center;
       }
 
-      #menu-bar a {
+      #sidebar a {
         color: #d4d4d4;
         margin-bottom: 10px;
         padding: 10px 20px;
@@ -61,18 +61,40 @@
         transition: background-color 0.2s;
         width: 100%;
         text-align: center;
+        cursor: pointer;
       }
 
-      #menu-bar a:hover {
+      #sidebar a:hover {
         background-color: #61dafb;
+      }
+
+      /* File List */
+      .file-list {
+        padding: 0;
+        list-style: none;
+        width: 100%;
+        margin-top: 20px;
+      }
+
+      .file-list li {
+        padding: 10px;
+        cursor: pointer;
+        background-color: #2a2a2a;
+        margin-bottom: 5px;
+        border-radius: 3px;
+      }
+
+      .file-list li:hover {
+        background-color: #61dafb;
+        color: white;
       }
 
       /* Editor Container */
       #editor-container {
         flex-grow: 1;
         padding: 20px;
-        width: calc(100% - 200px); /* Subtract the menu width */
-        margin-left: 200px; /* Align editor next to fixed menu bar */
+        width: calc(100% - 250px); /* Adjust to subtract sidebar width */
+        margin-left: 250px; /* Align editor next to fixed sidebar */
         height: 100vh;
         overflow: auto; /* Enable scrolling */
       }
@@ -95,42 +117,93 @@
     </style>
   </head>
   <body>
-    <div id="menu-bar">
+    <!-- Sidebar for Files/Project -->
+    <div id="sidebar">
       <h1>Bliss</h1>
-      <a id="new-file">New File</a>
-      <a id="open-file">Open File</a>
+      <a id="new-project">New Project</a>
+      <a id="open-project">Open Project</a>
       <a id="save-file">Save File</a>
+
+      <!-- List of files in the project -->
+      <ul id="file-list" class="file-list"></ul>
     </div>
 
+    <!-- Code Editor Container -->
     <div id="editor-container">
       <textarea id="editor"></textarea>
     </div>
 
     <script>
       const editor = document.getElementById('editor');
+      const fileList = document.getElementById('file-list');
       let currentFilePath = null;
+      let currentProjectPath = null;
 
-      // Autofocus the editor when the page loads
-      window.onload = function() {
-        editor.focus(); // Automatically place the cursor in the editor
-      };
+      // Extract query parameters (projectPath, file, etc.)
+      const urlParams = new URLSearchParams(window.location.search);
+      currentProjectPath = urlParams.get('projectPath');  // Check if it's a new project
+      const isNewFile = urlParams.get('new'); // Check if it's a new file
 
-      // New File
-      document.getElementById('new-file').addEventListener('click', () => {
-        editor.value = '';  // Clear the editor content
+      // If a new project is loaded, initialize the project directory in the sidebar
+      if (currentProjectPath) {
+        initializeNewProject();
+      }
+
+      // If a new file is being created, initialize the editor for a new file
+      if (isNewFile) {
+        initializeNewFile();
+      }
+
+      // Initialize a new project by showing the empty sidebar
+      async function initializeNewProject() {
+        fileList.innerHTML = '<li><em>Empty Project</em></li>';  // Indicate it's a new project
+      }
+
+      // Initialize a new file in the editor
+      function initializeNewFile() {
+        editor.value = '';  // Clear the editor for a new file
         currentFilePath = null;  // Reset the file path
-        editor.focus(); // Ensure the cursor remains active in the editor
+        editor.focus();  // Focus the editor
+      }
+
+      // New Project: Create a new project folder when clicked
+      document.getElementById('new-project').addEventListener('click', async () => {
+        const result = await window.electronAPI.createNewProject();
+        if (result) {
+          currentProjectPath = result.projectPath; // Store the new project path
+          initializeNewProject(); // Re-initialize the editor with the new project
+        }
       });
 
-      // Open File
-      document.getElementById('open-file').addEventListener('click', async () => {
-        const result = await window.electronAPI.openFile();
+      // Open Project (Select Directory)
+      document.getElementById('open-project').addEventListener('click', async () => {
+        const result = await window.electronAPI.openDirectory();
+        if (result) {
+          currentProjectPath = result.projectPath;  // Store the project path
+          loadProjectFiles(result.files);  // Display the files in the sidebar
+        }
+      });
+
+      // Load Files into Sidebar
+      function loadProjectFiles(files) {
+        fileList.innerHTML = ''; // Clear current list
+        files.forEach(file => {
+          const li = document.createElement('li');
+          li.textContent = file;
+          li.addEventListener('click', () => openFileInEditor(file)); // Add click event to load file
+          fileList.appendChild(li);
+        });
+      }
+
+      // Open File from Sidebar and Load into Editor
+      async function openFileInEditor(file) {
+        const result = await window.electronAPI.openFileFromProject(currentProjectPath, file);
         if (result) {
           editor.value = result.content;
           currentFilePath = result.filePath;
           editor.focus(); // Ensure the cursor remains active in the editor
         }
-      });
+      }
 
       // Save File
       document.getElementById('save-file').addEventListener('click', async () => {

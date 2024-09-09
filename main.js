@@ -1,44 +1,61 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const path = require('path');
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('fs');
-
-let win;
+const path = require('path');
 
 function createWindow() {
-  win = new BrowserWindow({
-    width: 1000,
-    height: 700,
+  const win = new BrowserWindow({
+    width: 800,
+    height: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false, // Security: disable Node integration in renderer
-      contextIsolation: true,  // Required for IPC
-    },
+      preload: path.join(__dirname, 'preload.js')
+    }
   });
 
   win.loadFile('index.html');
 }
 
-app.whenReady().then(createWindow);
+// Handle creating a new project
+ipcMain.handle('dialog:createNewProject', async () => {
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: 'Create New Project',
+    buttonLabel: 'Create Project',
+    properties: ['createDirectory'],
+    defaultPath: 'NewProject' // Default folder name
+  });
 
-// Handle opening a file
-ipcMain.handle('dialog:openFile', async () => {
-  const { canceled, filePaths } = await dialog.showOpenDialog();
-  if (canceled) return;
-  const content = fs.readFileSync(filePaths[0], 'utf8');
-  return { filePath: filePaths[0], content };
+  if (canceled || !filePath) return;
+
+  const projectPath = filePath;
+  if (!fs.existsSync(projectPath)) {
+    fs.mkdirSync(projectPath); // Create the new folder
+  }
+
+  // Return the newly created project with no files yet
+  return { projectPath, files: [] };
 });
 
-// Handle saving a file
-ipcMain.handle('dialog:saveFile', async (event, { filePath, content }) => {
-  if (!filePath) {
-    const { canceled, filePath: newFilePath } = await dialog.showSaveDialog();
-    if (canceled) return;
-    filePath = newFilePath;
-  }
+// Handle opening a directory (project)
+ipcMain.handle('dialog:openDirectory', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openDirectory']
+  });
+  if (canceled || !filePaths.length) return;
+
+  const projectPath = filePaths[0];
+  const files = fs.readdirSync(projectPath); // Get list of files in the directory
+  return { projectPath, files };
+});
+
+// Handle opening a file from a selected project
+ipcMain.handle('dialog:openFileFromProject', async (event, projectPath, file) => {
+  const filePath = path.join(projectPath, file);
+  const content = fs.readFileSync(filePath, 'utf-8'); // Read file content
+  return { filePath, content };
+});
+
+ipcMain.handle('dialog:saveFile', async (event, filePath, content) => {
   fs.writeFileSync(filePath, content);
   return filePath;
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+app.whenReady().then(createWindow);

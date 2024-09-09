@@ -61,17 +61,28 @@
   <body>
     <h1>Welcome to Bliss Editor</h1>
     <div class="menu">
-      <a id="new-file" href="editor.html?new=true">New File</a>
-      <a id="open-file">Open File</a>
+      <!-- Open Project instead of Open File -->
+      <a id="open-project">Open Project</a>
+      <a id="new-project">New Project</a>
     </div>
 
     <script>
-      const openFileButton = document.getElementById('open-file');
-      openFileButton.addEventListener('click', async () => {
-        const result = await window.electronAPI.openFile();
+      const openProjectButton = document.getElementById('open-project');
+      const newProjectButton = document.getElementById('new-project');
+
+      // Open Project functionality
+      openProjectButton.addEventListener('click', async () => {
+        const result = await window.electronAPI.openDirectory();  // Opens project directory
         if (result) {
-          // Navigate to the editor with the file path and content in the query parameters
-          window.location.href = `editor.html?file=${encodeURIComponent(result.filePath)}&content=${encodeURIComponent(result.content)}`;
+          window.location.href = `editor.html?projectPath=${encodeURIComponent(result.projectPath)}`;  // Load the editor with the project path
+        }
+      });
+
+      // New Project functionality
+      newProjectButton.addEventListener('click', async () => {
+        const result = await window.electronAPI.createNewProject();  // Create a new project folder
+        if (result) {
+          window.location.href = `editor.html?projectPath=${encodeURIComponent(result.projectPath)}`;  // Load the editor with the new project path
         }
       });
     </script>

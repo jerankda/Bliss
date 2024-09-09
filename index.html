@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bliss Editor</title>
+    <title>Bliss Editor - Start</title>
     <style>
       @font-face {
         font-family: 'Cascadia Code';
@@ -23,96 +23,56 @@
         background-color: #1e1e1e;
         color: #d4d4d4;
         margin: 0;
-        display: flex;
         height: 100vh;
-        overflow: hidden;
-      }
-
-      h1 {
-        text-align: center;
-        font-weight: 300;
-        padding: 20px;
-        color: #d4d4d4;
-        font-size: 24px;
-      }
-
-      #menu-bar {
-        width: 200px;
-        background-color: #252526;
-        padding: 20px;
         display: flex;
+        align-items: center;
+        justify-content: center;
         flex-direction: column;
       }
 
-      #menu-bar a {
+      h1 {
+        font-size: 3rem;
+        color: white;
+        margin-bottom: 50px;
+      }
+
+      .menu a {
+        display: block;
+        margin: 15px 0;
+        padding: 15px 30px;
+        background-color: #252526;
         color: #d4d4d4;
-        padding: 10px 0;
         text-decoration: none;
-        font-size: 16px;
-        transition: all 0.2s ease;
+        font-size: 1.5rem;
+        border-radius: 5px;
+        transition: background-color 0.2s;
       }
 
-      #menu-bar a:hover {
-        color: #61dafb; /* VSCode blue */
+      .menu a:hover {
+        background-color: #3b3b3b;
+        color: #61dafb;
       }
 
-      #editor-container {
-        flex-grow: 1;
-        height: 100%;
-        width: calc(100vw - 200px); /* Subtract the menu width */
-        padding: 20px; /* Added padding around the editor */
-      }
-
-      #editor {
-        height: 100%;
-        width: 100%;
-        background-color: #1e1e1e;
-        border: none; /* Removes any borders if present */
+      .menu {
+        text-align: center;
       }
     </style>
   </head>
   <body>
-    <!-- Left Menu Bar -->
-    <div id="menu-bar">
-      <h1>bliss</h1>
-      <a href="#">New File</a>
-      <a href="#">Open File</a>
-      <a href="#">Save File</a>
-      <a href="#">Settings</a>
+    <h1>Welcome to Bliss Editor</h1>
+    <div class="menu">
+      <a id="new-file" href="editor.html?new=true">New File</a>
+      <a id="open-file">Open File</a>
     </div>
 
-    <!-- Editor Container -->
-    <div id="editor-container">
-      <div id="editor"></div>
-    </div>
-
-    <!-- Load Monaco Editor -->
-    <script src="node_modules/monaco-editor/min/vs/loader.js"></script>
     <script>
-      require.config({ paths: { 'vs': 'node_modules/monaco-editor/min/vs' } });
-      require(['vs/editor/editor.main'], function () {
-        var editor = monaco.editor.create(document.getElementById('editor'), {
-          value: "// Start typing your code here...",
-          language: 'javascript',
-          theme: 'vs-dark',
-          fontFamily: 'Cascadia Code',
-          fontSize: 14,
-          lineNumbers: 'on',
-          minimap: { enabled: false },
-          scrollBeyondLastLine: false,
-          wordWrap: 'off',
-          smoothScrolling: true,
-          scrollbar: {
-            vertical: 'hidden', // Hide vertical scrollbar
-            horizontal: 'hidden' // Hide horizontal scrollbar
-          },
-          overviewRulerLanes: 0, 
-          automaticLayout: true 
-        });
-
-        window.addEventListener('resize', function() {
-          editor.layout();
-        });
+      const openFileButton = document.getElementById('open-file');
+      openFileButton.addEventListener('click', async () => {
+        const result = await window.electronAPI.openFile();
+        if (result) {
+          // Navigate to the editor with the file path and content in the query parameters
+          window.location.href = `editor.html?file=${encodeURIComponent(result.filePath)}&content=${encodeURIComponent(result.content)}`;
+        }
       });
     </script>
   </body>

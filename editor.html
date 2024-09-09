@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bliss Editor - Code Space</title>
+    <style>
+      @font-face {
+        font-family: 'Cascadia Code';
+        src: url('https://fonts.cdnfonts.com/s/19297/CascadiaCode-Regular.woff') format('woff');
+        font-weight: normal;
+        font-style: normal;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Cascadia Code', monospace;
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        margin: 0;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      #menu-bar {
+        width: 200px;
+        background-color: #252526;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* Bliss Title */
+      #menu-bar h1 {
+        font-size: 1.2rem; /* Reduce the font size */
+        color: #61dafb;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      #menu-bar a {
+        color: #d4d4d4;
+        margin-bottom: 10px;
+        padding: 10px 20px;
+        text-decoration: none;
+        font-size: 1rem; /* Reduce the font size */
+        background-color: #333;
+        border-radius: 5px;
+        transition: background-color 0.2s;
+        width: 100%;
+        text-align: center;
+      }
+
+      #menu-bar a:hover {
+        background-color: #61dafb;
+      }
+
+      #editor-container {
+        flex-grow: 1;
+        padding: 20px;
+        width: 100%;
+      }
+
+      #editor {
+        width: 100%;
+        height: 100%;
+        background-color: #1e1e1e;
+        color: white;
+        border: none;
+        padding: 10px;
+        font-family: 'Cascadia Code', monospace;
+        font-size: 14px;
+        resize: none;
+        outline: none;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="menu-bar">
+      <h1>bliss</h1>
+      <a id="new-file">New File</a>
+      <a id="open-file">Open File</a>
+      <a id="save-file">Save File</a>
+    </div>
+
+    <div id="editor-container">
+      <textarea id="editor"></textarea>
+    </div>
+
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const editor = document.getElementById('editor');
+      let currentFilePath = null;
+
+      if (urlParams.has('new') && urlParams.get('new') === 'true') {
+        // New File
+        editor.value = '';
+      } else if (urlParams.has('file') && urlParams.has('content')) {
+        // Opened File
+        currentFilePath = decodeURIComponent(urlParams.get('file'));
+        editor.value = decodeURIComponent(urlParams.get('content'));
+      }
+
+      // Save File
+      document.getElementById('save-file').addEventListener('click', async () => {
+        const content = editor.value;
+        const result = await window.electronAPI.saveFile(currentFilePath, content);
+        if (result) {
+          currentFilePath = result;  // Update file path after saving
+        }
+      });
+
+      // New File in editor
+      document.getElementById('new-file').addEventListener('click', () => {
+        editor.value = '';
+        currentFilePath = null;
+      });
+
+      // Open File in editor
+      document.getElementById('open-file').addEventListener('click', async () => {
+        const result = await window.electronAPI.openFile();
+        if (result) {
+          editor.value = result.content;
+          currentFilePath = result.filePath;
+        }
+      });
+    </script>
+  </body>
+</html>

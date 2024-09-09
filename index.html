@@ -61,27 +61,27 @@
   <body>
     <h1>Welcome to Bliss Editor</h1>
     <div class="menu">
-      <a id="open-project">Open Project</a>
       <a id="new-project">New Project</a>
+      <a id="open-project">Open Project</a>
     </div>
 
     <script>
-      const openProjectButton = document.getElementById('open-project');
       const newProjectButton = document.getElementById('new-project');
-
-      // Open Project functionality
-      openProjectButton.addEventListener('click', async () => {
-        const result = await window.electronAPI.openDirectory();  // Opens project directory
-        if (result) {
-          window.location.href = `editor.html?projectPath=${encodeURIComponent(result.projectPath)}`;  // Pass the project path
-        }
-      });
+      const openProjectButton = document.getElementById('open-project');
 
       // New Project functionality
       newProjectButton.addEventListener('click', async () => {
         const result = await window.electronAPI.createNewProject();  // Create a new project folder
         if (result) {
-          window.location.href = `editor.html?projectPath=${encodeURIComponent(result.projectPath)}`;  // Pass the project path
+          window.location.href = `editor.html?projectPath=${encodeURIComponent(result.projectPath)}`;  // Load the editor with the new project path
+        }
+      });
+
+      // Open Project functionality
+      openProjectButton.addEventListener('click', async () => {
+        const result = await window.electronAPI.openDirectory();  // Open an existing project directory
+        if (result) {
+          window.location.href = `editor.html?projectPath=${encodeURIComponent(result.projectPath)}`;  // Load the editor with the project path
         }
       });
     </script>

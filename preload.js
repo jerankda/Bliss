@@ -1,10 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose IPC methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
-  openDirectory: () => ipcRenderer.invoke('openDirectory'),
   createNewProject: () => ipcRenderer.invoke('createNewProject'),
-  createNewFile: (projectPath, fileName) => ipcRenderer.invoke('createNewFile', projectPath, fileName),
+  openDirectory: () => ipcRenderer.invoke('openDirectory'),
+  loadProjectFiles: (projectPath) => ipcRenderer.invoke('loadProjectFiles', projectPath),
   openFileFromProject: (projectPath, fileName) => ipcRenderer.invoke('openFileFromProject', projectPath, fileName),
-  saveFile: (filePath, content) => ipcRenderer.invoke('saveFile', filePath, content),
+  saveFile: (filePath, content) => ipcRenderer.invoke('saveFile', filePath, content)
 });

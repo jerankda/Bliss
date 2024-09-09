@@ -132,7 +132,6 @@
     <!-- Sidebar for Files/Project -->
     <div id="sidebar">
       <h1>Bliss</h1>
-      <button id="new-file">New File</button>
       <button id="save-file" style="display: none;">Save File</button>
 
       <!-- List of files in the project -->
@@ -149,7 +148,6 @@
     <script>
       const editor = document.getElementById('editor');
       const fileList = document.getElementById('file-list');
-      const newFileButton = document.getElementById('new-file');
       const saveFileButton = document.getElementById('save-file');
       const currentFileIndicator = document.getElementById('current-file');
 
@@ -162,7 +160,6 @@
 
       if (currentProjectPath) {
         initializeProject();
-        newFileButton.style.display = 'block';  // Show New File button once project is loaded
       }
 
       // Initialize project and load files
@@ -175,36 +172,24 @@
 
       // Load files into the sidebar
       function loadFiles(files) {
-        fileList.innerHTML = '';
+        fileList.innerHTML = '';  // Clear the current file list
         files.forEach(file => {
           const li = document.createElement('li');
           li.textContent = file;
-          li.addEventListener('click', () => openFileInEditor(file));
+          li.addEventListener('click', () => openFileInEditor(file));  // Add click event
           fileList.appendChild(li);
         });
       }
-
-      // Button: Create New File
-      newFileButton.addEventListener('click', async () => {
-        const fileName = prompt("Enter file name (with extension):");
-        if (fileName) {
-          const result = await window.electronAPI.createNewFile(currentProjectPath, fileName);
-          if (result) {
-            loadFiles(result.files);  // Reload files in the sidebar
-            openFileInEditor(fileName);  // Open the newly created file in the editor
-          }
-        }
-      });
 
       // Open a file and load its contents into the editor
       async function openFileInEditor(file) {
         const result = await window.electronAPI.openFileFromProject(currentProjectPath, file);
         if (result) {
           editor.value = result.content;
-          editor.disabled = false;
+          editor.disabled = false;  // Enable the editor for editing
           currentFilePath = result.filePath;
           currentFileIndicator.textContent = file;
-          saveFileButton.style.display = 'block';
+          saveFileButton.style.display = 'block';  // Show Save button when a file is open
         }
       }
 

@@ -2,76 +2,72 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-let mainWindow;
-
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+  const win = new BrowserWindow({
+    width: 1000,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       enableRemoteModule: false,
+      nodeIntegration: false
     }
   });
 
-  mainWindow.loadFile('index.html');
+  win.loadFile('index.html');
 }
 
-// Handle creating a new project (folder creation dialog)
+// Handle creating a new project
 ipcMain.handle('createNewProject', async () => {
-  const projectPath = dialog.showOpenDialogSync(mainWindow, {
-    properties: ['openDirectory', 'createDirectory'],
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: 'Select location to save your project',
+    buttonLabel: 'Create Project',
+    properties: ['createDirectory'],
   });
-  if (projectPath && projectPath.length > 0) {
-    const files = fs.readdirSync(projectPath[0]);
-    return { projectPath: projectPath[0], files };
-  }
-  return null;
-});
 
-// Handle opening an existing project
-ipcMain.handle('openDirectory', async () => {
-  const projectPath = dialog.showOpenDialogSync(mainWindow, {
-    properties: ['openDirectory']
-  });
-  if (projectPath && projectPath.length > 0) {
-    const files = fs.readdirSync(projectPath[0]);
-    return { projectPath: projectPath[0], files };
-  }
-  return null;
-});
-
-// Handle loading files from a project
-ipcMain.handle('loadProjectFiles', async (event, projectPath) => {
-  try {
-    const files = fs.readdirSync(projectPath);
-    return { files };
-  } catch (error) {
-    console.error('Error loading files:', error);
+  if (canceled || !filePath) {
     return null;
   }
+
+  // Create the directory
+  if (!fs.existsSync(filePath)) {
+    fs.mkdirSync(filePath, { recursive: true });
+  }
+
+  return { projectPath: filePath };
 });
 
-// Handle creating a new file in the project
-ipcMain.handle('createNewFile', async (event, projectPath, fileName) => {
-  const filePath = path.join(projectPath, fileName);
+// Handle opening an existing directory (Open Project)
+ipcMain.handle('openDirectory', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: 'Select project directory',
+    properties: ['openDirectory'],
+  });
+
+  if (canceled || !filePaths || filePaths.length === 0) {
+    return null;
+  }
+
+  return { projectPath: filePaths[0] };
+});
+
+// Handle loading project files
+ipcMain.handle('loadProjectFiles', async (event, projectPath) => {
   try {
-    fs.writeFileSync(filePath, '', 'utf8');  // Create an empty file
-    const files = fs.readdirSync(projectPath);  // Get the updated list of files
-    return { files };  // Return the updated list of files
+    const files = fs.readdirSync(projectPath);  // Get the list of files
+    return { files };  // Return the list of files
   } catch (error) {
-    console.error('Error creating file:', error);
+    console.error('Error loading project files:', error);
     return null;
   }
 });
 
 // Handle opening a file from the project
 ipcMain.handle('openFileFromProject', async (event, projectPath, fileName) => {
-  const filePath = path.join(projectPath, fileName);
   try {
-    const content = fs.readFileSync(filePath, 'utf8');  // Read file content
-    return { content, filePath };  // Return file content and path
+    const filePath = path.join(projectPath, fileName);
+    const content = fs.readFileSync(filePath, 'utf8');
+    return { content, filePath };
   } catch (error) {
     console.error('Error opening file:', error);
     return null;

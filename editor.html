@@ -81,10 +81,9 @@
       #editor {
         width: 100%;
         height: 100%;
-        background-color: #262626; /* Slightly different background color */
+        background-color: #1e1e1e;
         color: white;
-        border: 2px solid #555; /* Add a subtle border */
-        border-radius: 5px;
+        border: none;
         padding: 10px;
         font-family: 'Cascadia Code', monospace;
         font-size: 14px;
@@ -92,13 +91,12 @@
         outline: none;
         white-space: pre-wrap;
         overflow-wrap: break-word;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Optional: shadow for clarity */
       }
     </style>
   </head>
   <body>
     <div id="menu-bar">
-      <h1>bliss</h1>
+      <h1>Bliss</h1>
       <a id="new-file">New File</a>
       <a id="open-file">Open File</a>
       <a id="save-file">Save File</a>
@@ -112,10 +110,16 @@
       const editor = document.getElementById('editor');
       let currentFilePath = null;
 
+      // Autofocus the editor when the page loads
+      window.onload = function() {
+        editor.focus(); // Automatically place the cursor in the editor
+      };
+
       // New File
       document.getElementById('new-file').addEventListener('click', () => {
         editor.value = '';  // Clear the editor content
         currentFilePath = null;  // Reset the file path
+        editor.focus(); // Ensure the cursor remains active in the editor
       });
 
       // Open File
@@ -124,6 +128,7 @@
         if (result) {
           editor.value = result.content;
           currentFilePath = result.filePath;
+          editor.focus(); // Ensure the cursor remains active in the editor
         }
       });
 

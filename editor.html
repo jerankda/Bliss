@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bliss Editor - Code Space</title>
+
+    <!-- Font Awesome for the trash icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
       @font-face {
         font-family: 'Cascadia Code';
@@ -27,7 +31,6 @@
         overflow: hidden;
       }
 
-      /* Sidebar for Files/Projects */
       #sidebar {
         width: 250px;
         background-color: #252526;
@@ -41,7 +44,6 @@
         left: 0;
       }
 
-      /* Bliss Title */
       #sidebar h1 {
         font-size: 1.2rem;
         color: #61dafb;
@@ -74,7 +76,6 @@
         text-align: center;
       }
 
-      /* File List */
       .file-list {
         padding: 0;
         list-style: none;
@@ -88,6 +89,22 @@
         background-color: #2a2a2a;
         margin-bottom: 5px;
         border-radius: 3px;
+        position: relative;
+      }
+
+      .file-list li:hover .delete-icon {
+        display: block;
+      }
+
+      .delete-icon {
+        display: none;
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        font-size: 14px;
+        color: #d4d4d4;
       }
 
       .file-list li:hover {
@@ -95,20 +112,18 @@
         color: white;
       }
 
-      /* Editor Container */
       #editor-container {
         flex-grow: 1;
         padding: 20px;
-        width: calc(100% - 250px); /* Adjust to subtract sidebar width */
-        margin-left: 250px; /* Align editor next to fixed sidebar */
+        width: calc(100% - 250px);
+        margin-left: 250px;
         height: 100vh;
-        overflow: auto; /* Enable scrolling */
+        overflow: auto;
       }
 
-      /* Code Editor */
       #editor {
         width: 100%;
-        height: calc(100% - 40px); /* Adjust height to leave space for file indicator */
+        height: calc(100% - 40px);
         background-color: #1e1e1e;
         color: white;
         border: none;
@@ -121,7 +136,6 @@
         overflow-wrap: break-word;
       }
 
-      /* Current File Indicator (Floating) */
       #current-file {
         font-size: 0.9rem;
         color: #61dafb;
@@ -131,74 +145,27 @@
         top: 10px;
         left: 50%;
         transform: translateX(-50%);
-        width: auto;
       }
 
-      /* Modal for File Input */
-      #file-modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        justify-content: center;
-        align-items: center;
-      }
-
-      #file-modal-content {
-        background-color: #333;
-        padding: 20px;
-        border-radius: 5px;
-        width: 300px;
-        text-align: center;
-      }
-
-      #file-modal-content input {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 10px;
-        font-size: 1rem;
-        border-radius: 5px;
-        border: none;
-      }
-
-      #file-modal-content button {
-        padding: 10px 20px;
-        font-size: 1rem;
-        background-color: #61dafb;
-        border: none;
-        color: white;
-        border-radius: 5px;
-        cursor: pointer;
+      /* Styling for the Font Awesome Trash Icon */
+      .delete-icon i {
+        font-size: 14px;
+        color: #d4d4d4;
       }
     </style>
   </head>
   <body>
-    <!-- Sidebar for Files/Project -->
     <div id="sidebar">
       <h1>bliss</h1>
       <button id="new-file">New File</button>
       <button id="save-file" style="display: none;">Save File</button>
-      <div id="project-name"></div> <!-- Project Name -->
-      <!-- List of files in the project -->
+      <div id="project-name"></div>
       <ul id="file-list" class="file-list"></ul>
     </div>
 
-    <!-- Code Editor Container -->
     <div id="editor-container">
-      <!-- Current File Indicator (No box or border) -->
       <div id="current-file">No file opened</div>
       <textarea id="editor" disabled></textarea>
-    </div>
-
-    <!-- Modal for New File Input -->
-    <div id="file-modal">
-      <div id="file-modal-content">
-        <input type="text" id="file-name" placeholder="Enter file name (e.g., index.html)">
-        <button id="create-file-btn">Create File</button>
-      </div>
     </div>
 
     <script>
@@ -208,81 +175,83 @@
       const newFileButton = document.getElementById('new-file');
       const currentFileIndicator = document.getElementById('current-file');
       const projectNameIndicator = document.getElementById('project-name');
-      const fileModal = document.getElementById('file-modal');
-      const fileNameInput = document.getElementById('file-name');
-      const createFileButton = document.getElementById('create-file-btn');
 
       let currentFilePath = null;
       let currentProjectPath = null;
 
-      // Extract project path from query params
       const urlParams = new URLSearchParams(window.location.search);
-      currentProjectPath = urlParams.get('projectPath');  // Get project path from URL
+      currentProjectPath = urlParams.get('projectPath');
 
       if (currentProjectPath) {
         initializeProject();
       }
 
-      // Initialize project and load files
       async function initializeProject() {
         const result = await window.electronAPI.loadProjectFiles(currentProjectPath);
         if (result && result.files) {
-          loadFiles(result.files);  // Display files in the sidebar
+          loadFiles(result.files);
         }
 
-        // Set project name
         const projectPathParts = currentProjectPath.split('/');
         const projectName = projectPathParts[projectPathParts.length - 1];
         projectNameIndicator.textContent = `Project: ${projectName}`;
       }
 
-      // Load files into the sidebar
       function loadFiles(files) {
-        fileList.innerHTML = '';  // Clear the current file list
+        fileList.innerHTML = '';
         files.forEach(file => {
           const li = document.createElement('li');
           li.textContent = file;
-          li.addEventListener('click', () => openFileInEditor(file));  // Add click event
+
+          // Create the delete icon (trash can)
+          const deleteIcon = document.createElement('span');
+          deleteIcon.innerHTML = '<i class="fas fa-trash-alt"></i>'; // Font Awesome trash icon
+          deleteIcon.classList.add('delete-icon');
+          deleteIcon.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const confirmed = confirm(`Are you sure you want to delete "${file}"?`);
+            if (confirmed) {
+              const result = await window.electronAPI.deleteFile(currentProjectPath, file);
+              if (result) {
+                loadFiles(result.files);  // Reload the file list
+                editor.value = '';
+                currentFilePath = null;
+                currentFileIndicator.textContent = 'No file opened';
+                saveFileButton.style.display = 'none';
+              }
+            }
+          });
+
+          li.appendChild(deleteIcon);
+          li.addEventListener('click', () => openFileInEditor(file));
           fileList.appendChild(li);
         });
       }
 
-      // Open a file and load its contents into the editor
       async function openFileInEditor(file) {
         const result = await window.electronAPI.openFileFromProject(currentProjectPath, file);
         if (result) {
           editor.value = result.content;
-          editor.disabled = false;  // Enable the editor for editing
+          editor.disabled = false;
           currentFilePath = result.filePath;
-          currentFileIndicator.textContent = file;  // Display the file name without box
-          saveFileButton.style.display = 'block';  // Show Save button when a file is open
+          currentFileIndicator.textContent = file;
+          saveFileButton.style.display = 'block';
         }
       }
 
-      // Button: New File
-      newFileButton.addEventListener('click', () => {
-        fileModal.style.display = 'flex';  // Show the input modal for new file name
-      });
-
-      // Button: Create File inside the modal
-      createFileButton.addEventListener('click', async () => {
-        const fileName = fileNameInput.value;
+      newFileButton.addEventListener('click', async () => {
+        const fileName = prompt('Enter the name for the new file:');
         if (!fileName) {
-          alert('Please enter a file name');
+          alert('File name cannot be empty.');
           return;
         }
 
         const result = await window.electronAPI.createNewFile(currentProjectPath, fileName);
         if (result) {
-          loadFiles(result.files);  // Reload the files in the sidebar
-          fileModal.style.display = 'none';  // Hide the modal after creating the file
-          fileNameInput.value = '';  // Clear the input for next use
-        } else {
-          alert('Error creating the file. It may already exist.');
+          loadFiles(result.files);
         }
       });
 
-      // Button: Save File
       saveFileButton.addEventListener('click', async () => {
         if (!currentFilePath) return;
         const content = editor.value;

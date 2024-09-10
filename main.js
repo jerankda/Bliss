@@ -29,7 +29,6 @@ ipcMain.handle('createNewProject', async () => {
     return null;
   }
 
-  // Create the directory if it doesn't exist
   if (!fs.existsSync(filePath)) {
     fs.mkdirSync(filePath, { recursive: true });
   }
@@ -55,7 +54,7 @@ ipcMain.handle('openDirectory', async () => {
 ipcMain.handle('loadProjectFiles', async (event, projectPath) => {
   try {
     const files = fs.readdirSync(projectPath);  // Get the list of files
-    return { files };  // Return the list of files
+    return { files };
   } catch (error) {
     console.error('Error loading project files:', error);
     return null;
@@ -82,7 +81,6 @@ ipcMain.handle('createNewFile', async (event, projectPath, fileName) => {
       fs.writeFileSync(filePath, '');  // Create an empty file
     }
 
-    // Return updated list of files in the project directory
     const files = fs.readdirSync(projectPath);
     return { files };
   } catch (error) {
@@ -91,25 +89,24 @@ ipcMain.handle('createNewFile', async (event, projectPath, fileName) => {
   }
 });
 
-// Show input dialog for new file name
-ipcMain.handle('showInputDialog', async (event, message) => {
-  const { canceled, response } = await dialog.showMessageBox({
-    message: message,
-    buttons: ['OK'],
-    inputFields: {
-      type: 'text',
-      placeholder: 'Enter file name'
-    }
-  });
-
-  return canceled ? null : response;
+// Handle deleting a file
+ipcMain.handle('deleteFile', async (event, projectPath, fileName) => {
+  try {
+    const filePath = path.join(projectPath, fileName);
+    fs.unlinkSync(filePath);  // Delete the file
+    const files = fs.readdirSync(projectPath);  // Return updated list of files
+    return { files };
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    return null;
+  }
 });
 
 // Handle saving a file
 ipcMain.handle('saveFile', async (event, filePath, content) => {
   try {
-    fs.writeFileSync(filePath, content, 'utf8');  // Write content to the file
-    return filePath;  // Return the file path
+    fs.writeFileSync(filePath, content, 'utf8');
+    return filePath;
   } catch (error) {
     console.error('Error saving file:', error);
     return null;

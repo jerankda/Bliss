@@ -92,6 +92,15 @@
         position: relative;
       }
 
+      .file-list li.unsaved::after {
+        content: '*';
+        color: rgb(112, 112, 112);
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
       .file-list li:hover .delete-icon {
         display: block;
       }
@@ -99,7 +108,7 @@
       .delete-icon {
         display: none;
         position: absolute;
-        right: 10px;
+        right: 30px;
         top: 50%;
         transform: translateY(-50%);
         cursor: pointer;
@@ -146,38 +155,33 @@
         left: 50%;
         transform: translateX(-50%);
       }
-
-      /* Styling for the Font Awesome Trash Icon */
-      .delete-icon i {
-        font-size: 14px;
-        color: #d4d4d4;
-      }
     </style>
   </head>
   <body>
     <div id="sidebar">
       <h1>bliss</h1>
       <button id="new-file">New File</button>
-      <button id="save-file" style="display: none;">Save File</button>
       <div id="project-name"></div>
       <ul id="file-list" class="file-list"></ul>
     </div>
 
     <div id="editor-container">
-      <div id="current-file">No file opened</div>
+      <div id="current-file">
+        No file opened
+      </div>
       <textarea id="editor" disabled></textarea>
     </div>
 
     <script>
       const editor = document.getElementById('editor');
       const fileList = document.getElementById('file-list');
-      const saveFileButton = document.getElementById('save-file');
       const newFileButton = document.getElementById('new-file');
       const currentFileIndicator = document.getElementById('current-file');
       const projectNameIndicator = document.getElementById('project-name');
 
       let currentFilePath = null;
       let currentProjectPath = null;
+      let isFileModified = false;
 
       const urlParams = new URLSearchParams(window.location.search);
       currentProjectPath = urlParams.get('projectPath');
@@ -217,7 +221,6 @@
                 editor.value = '';
                 currentFilePath = null;
                 currentFileIndicator.textContent = 'No file opened';
-                saveFileButton.style.display = 'none';
               }
             }
           });
@@ -235,7 +238,8 @@
           editor.disabled = false;
           currentFilePath = result.filePath;
           currentFileIndicator.textContent = file;
-          saveFileButton.style.display = 'block';
+          isFileModified = false;  // Reset unsaved state
+          removeUnsavedIndicator(file);
         }
       }
 
@@ -252,14 +256,58 @@
         }
       });
 
-      saveFileButton.addEventListener('click', async () => {
+      // Detect changes in the editor and mark the file as modified
+      editor.addEventListener('input', () => {
+        if (!isFileModified) {
+          isFileModified = true;
+          addUnsavedIndicator(currentFilePath);  // Mark the file as unsaved
+        }
+      });
+
+      // Autosave every 10 secds
+      setInterval(() => {
+        if (isFileModified) {
+          saveCurrentFile();
+        }
+      }, 10000); 
+
+      // Save file on Ctrl+S (Windows/Linux) or Command+S (Mac)
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          if (isFileModified) {
+            saveCurrentFile();
+          }
+        }
+      });
+
+      async function saveCurrentFile() {
         if (!currentFilePath) return;
         const content = editor.value;
         const result = await window.electronAPI.saveFile(currentFilePath, content);
         if (result) {
-          console.log('File saved successfully');
+          isFileModified = false;  // Reset unsaved state after saving
+          removeUnsavedIndicator(currentFilePath);
         }
-      });
+      }
+
+      function addUnsavedIndicator(filePath) {
+        const fileListItems = document.querySelectorAll('.file-list li');
+        fileListItems.forEach(item => {
+          if (item.textContent.trim() === currentFileIndicator.textContent.trim()) {
+            item.classList.add('unsaved');  // Add unsaved class
+          }
+        });
+      }
+
+      function removeUnsavedIndicator(filePath) {
+        const fileListItems = document.querySelectorAll('.file-list li');
+        fileListItems.forEach(item => {
+          if (item.textContent.trim() === currentFileIndicator.textContent.trim()) {
+            item.classList.remove('unsaved'); 
+          }
+        });
+      }
     </script>
   </body>
 </html>
